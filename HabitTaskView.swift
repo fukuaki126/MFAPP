@@ -20,7 +20,6 @@ struct HabitTaskView: View {
             .onDelete { indexSet in
                 tasks.remove(atOffsets: indexSet)
                 saveTasks()
-                    
             }
         }
     }

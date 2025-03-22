@@ -31,7 +31,7 @@ struct ContentView: View {
                 .accentColor(selectedTab == 0 ? .red : .blue) // タブの選択状態に応じて色変更
             }
             .background(Color(selectedTab == 0 ? UIColor.systemRed.withAlphaComponent(0.2) : UIColor.systemBlue.withAlphaComponent(0.2)))
-            .navigationTitle("タスク管理")
+            //.navigationTitle("タスク管理")
             .navigationBarItems(trailing: Button(action: {
                 showingAddTaskView = true
             }) {
