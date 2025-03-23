@@ -1,15 +1,16 @@
 import Foundation
 
-enum TaskType: String, Codable, CaseIterable {
-    case habit = "習慣タスク"
+enum TaskType: String, CaseIterable, Codable {
+    case habit = "習慣"
     case reminder = "リマインダー"
 }
 
-struct Task: Codable, Identifiable {
+struct Task: Identifiable, Codable {
     var id = UUID()
     var title: String
     var taskType: TaskType
     var lastCompletedDate: Date?
     var dueDate: Date?
+    var alertDays: Int? // 🚀 追加（警告日数）
     var isCompleted: Bool
 }

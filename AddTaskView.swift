@@ -7,8 +7,9 @@ struct AddTaskView: View {
     @State private var title: String = ""
     @State private var taskType: TaskType = .habit
     @State private var dueDate: Date = Date()
-    @State private var lastCompletedDate: Date = Date() // 追加
-
+    @State private var lastCompletedDate: Date = Date() // 最終実行日
+    @State private var alertDays: String = "" // 警告日数 (String)
+    
     var body: some View {
         NavigationView {
             Form {
@@ -22,7 +23,22 @@ struct AddTaskView: View {
                 
                 if taskType == .habit {
                     DatePicker("最終実行日", selection: $lastCompletedDate, displayedComponents: [.date])
+                    
+                    HStack {
+                        Text("警告日数")
+                        Spacer()
+                        TextField("0", text: $alertDays)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing) // 右寄せ
+                            .frame(width: 50) // コンパクトにする
+                            .onChange(of: alertDays) { newValue in
+                                // 数値以外を削除し、3桁に制限
+                                alertDays = String(newValue.prefix(3)).filter { "0123456789".contains($0) }
+                            }
+                        Text("日") // 単位を固定で表示
+                    }
                 }
+
 
                 if taskType == .reminder {
                     DatePicker("期限", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
@@ -32,11 +48,15 @@ struct AddTaskView: View {
             .navigationBarItems(leading: Button("キャンセル") {
                 presentationMode.wrappedValue.dismiss()
             }, trailing: Button("保存") {
+                // alertDays を Int 型に変換する
+                let alertDaysInt = Int(alertDays) ?? 0 // 無効な場合は0にデフォルト設定
+                
                 let newTask = Task(
                     title: title,
                     taskType: taskType,
                     lastCompletedDate: taskType == .habit ? lastCompletedDate : nil,
-                    dueDate: taskType == .reminder ? dueDate : nil,
+                    dueDate: taskType == .reminder ? dueDate : nil,                    
+                    alertDays: taskType == .habit ? alertDaysInt : nil,
                     isCompleted: false
                 )
                 tasks.append(newTask)

@@ -24,6 +24,7 @@ struct ReminderTaskView: View {
                     Text(task.title)
                         .font(.title3)
                         .foregroundColor(task.isCompleted ? .gray : .primary)
+                        .contentShape(Rectangle()) // HStack全体をタップ可能にする
                         .onTapGesture {
                             // タスク編集画面を開く
                         }
