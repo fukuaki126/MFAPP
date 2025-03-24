@@ -25,6 +25,9 @@ struct HabitTaskView: View {
                 .onAppear {
                     // ここで経過日数のチェックを毎回行う
                     _ = daysSinceLastCompleted(task)
+                    for task in tasks.filter({ $0.taskType == .habit }) {
+                        NotificationManager.shared.scheduleHabitTaskNotification(task: task)
+                    }
                 }
             }
             .onDelete { indexSet in
@@ -46,8 +49,12 @@ struct HabitTaskView: View {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index].lastCompletedDate = Date()
             saveTasks()
+
+            // 通知をキャンセル
+            NotificationManager.shared.cancelNotification(task: tasks[index])
         }
     }
+    
 
     private func daysSinceLastCompleted(_ task: Task) -> Int {
         guard let lastDate = task.lastCompletedDate else { return 0 }

@@ -43,6 +43,7 @@ struct ContentView: View {
                 AddTaskView(tasks: $tasks)
             }
             .onAppear {
+                NotificationManager.shared.requestAuthorization()
                 loadTasks()
             }
         }

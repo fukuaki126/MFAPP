@@ -9,6 +9,7 @@ struct AddTaskView: View {
     @State private var dueDate: Date = Date()
     @State private var lastCompletedDate: Date = Date() // 最終実行日
     @State private var alertDays: String = "" // 警告日数 (String)
+    @State private var notificationTime: Date = Date() // 🔔 通知時間を追加
     
     var body: some View {
         NavigationView {
@@ -37,6 +38,8 @@ struct AddTaskView: View {
                             }
                         Text("日") // 単位を固定で表示
                     }
+                    // 🔔 通知時間を選択
+                    DatePicker("通知時間", selection: $notificationTime, displayedComponents: [.hourAndMinute])
                 }
 
 
@@ -57,6 +60,7 @@ struct AddTaskView: View {
                     lastCompletedDate: taskType == .habit ? lastCompletedDate : nil,
                     dueDate: taskType == .reminder ? dueDate : nil,                    
                     alertDays: taskType == .habit ? alertDaysInt : nil,
+                    notificationTime: taskType == .habit ? notificationTime : nil, // 🔔 修正済みの通知時間を保存
                     isCompleted: false
                 )
                 tasks.append(newTask)
