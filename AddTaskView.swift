@@ -32,10 +32,10 @@ struct AddTaskView: View {
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing) // 右寄せ
                             .frame(width: 50) // コンパクトにする
-                            .onChange(of: alertDays) { newValue in
-                                // 数値以外を削除し、3桁に制限
+                            .onChange(of: alertDays) { oldValue, newValue in
                                 alertDays = String(newValue.prefix(3)).filter { "0123456789".contains($0) }
                             }
+
                         Text("日") // 単位を固定で表示
                     }
                     // 🔔 通知時間を選択
@@ -44,7 +44,7 @@ struct AddTaskView: View {
 
 
                 if taskType == .reminder {
-                    DatePicker("期限", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                    DatePicker("通知時間", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                 }
             }
             .navigationTitle("タスクを追加")

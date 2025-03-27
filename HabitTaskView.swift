@@ -2,59 +2,75 @@ import SwiftUI
 
 struct HabitTaskView: View {
     @Binding var tasks: [Task]
-    @State private var showingCompletionAlert = false
-    @State private var selectedTask: Task?
 
     var body: some View {
-        List {
-            ForEach(tasks.filter { $0.taskType == .habit }) { task in
-                HStack {
-                    Text(task.title)
-                        .font(.title3)
-                    Spacer()
-                    
-                    Text("経過: \(daysSinceLastCompleted(task))日")
-                        .foregroundColor(isAlert(task) ? .red : .gray)
-                }
-                .padding(.vertical, 8)
-                .contentShape(Rectangle()) // HStack全体をタップ可能に
-                .onTapGesture {
-                    selectedTask = task
-                    showingCompletionAlert = true
-                }
-                .onAppear {
-                    // ここで経過日数のチェックを毎回行う
-                    _ = daysSinceLastCompleted(task)
-                    for task in tasks.filter({ $0.taskType == .habit }) {
-                        NotificationManager.shared.scheduleHabitTaskNotification(task: task)
+        NavigationView {
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .edgesIgnoringSafeArea(.all)
+
+                VStack {
+                    if tasks.filter({ $0.taskType == .habit }).isEmpty {
+                        Text("習慣タスクがありません")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                            .padding()
+                    } else {
+                        List {
+                            ForEach(tasks.filter { $0.taskType == .habit }) { task in
+                                HStack {
+                                    // ✅ チェックマークボタン（完了フラグを切り替え）
+                                    Button(action: {
+                                        toggleCompletion(for: task)
+                                    }) {
+                                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(task.isCompleted ? .green : .gray)
+                                            .font(.system(size: 30))
+                                    }
+                                    .buttonStyle(PlainButtonStyle()) // デフォルトのボタンスタイルを解除
+
+                                    // ✅ タイトルや経過日数をタップで編集画面に遷移
+                                    NavigationLink(destination: EditHabitTaskView(tasks: $tasks, taskToEdit: task)) {
+                                        VStack(alignment: .leading) {
+                                            Text(task.title)
+                                                .font(.title3)
+                                            Text("経過: \(daysSinceLastCompleted(task))日")
+                                                .foregroundColor(isAlert(task) ? .red : .gray)
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                                .onAppear {
+                                    _ = daysSinceLastCompleted(task)
+                                    NotificationManager.shared.scheduleHabitTaskNotification(task: task)
+                                }
+                            }
+                            .onDelete { indexSet in
+                                tasks.remove(atOffsets: indexSet)
+                                saveTasks()
+                            }
+                        }
+                        .listStyle(PlainListStyle())
+                        .background(Color.clear)
                     }
                 }
             }
-            .onDelete { indexSet in
-                tasks.remove(atOffsets: indexSet)
-                saveTasks()
-            }
-        }
-        .alert("タスクを実行しましたか？", isPresented: $showingCompletionAlert) {
-            Button("はい") {
-                if let task = selectedTask {
-                    completeTask(task)
-                }
-            }
-            Button("いいえ", role: .cancel) {}
         }
     }
 
-    private func completeTask(_ task: Task) {
+    private func toggleCompletion(for task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            tasks[index].lastCompletedDate = Date()
+            tasks[index].isCompleted.toggle()
+            if tasks[index].isCompleted {
+                tasks[index].lastCompletedDate = Date()
+                NotificationManager.shared.cancelNotification(task: tasks[index])
+            } else {
+                tasks[index].lastCompletedDate = nil
+                NotificationManager.shared.scheduleHabitTaskNotification(task: tasks[index])
+            }
             saveTasks()
-
-            // 通知をキャンセル
-            NotificationManager.shared.cancelNotification(task: tasks[index])
         }
     }
-    
 
     private func daysSinceLastCompleted(_ task: Task) -> Int {
         guard let lastDate = task.lastCompletedDate else { return 0 }
@@ -66,10 +82,7 @@ struct HabitTaskView: View {
               let alertDays = task.alertDays else {
             return false
         }
-        
-        let currentDate = Date()
-        let daysSinceLastCompletion = Calendar.current.dateComponents([.day], from: lastCompletedDate, to: currentDate).day ?? 0
-
+        let daysSinceLastCompletion = Calendar.current.dateComponents([.day], from: lastCompletedDate, to: Date()).day ?? 0
         return daysSinceLastCompletion >= alertDays
     }
 

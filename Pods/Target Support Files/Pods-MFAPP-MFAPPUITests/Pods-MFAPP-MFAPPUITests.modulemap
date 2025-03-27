@@ -1,0 +1,6 @@
+framework module Pods_MFAPP_MFAPPUITests {
+  umbrella header "Pods-MFAPP-MFAPPUITests-umbrella.h"
+
+  export *
+  module * { export * }
+}
