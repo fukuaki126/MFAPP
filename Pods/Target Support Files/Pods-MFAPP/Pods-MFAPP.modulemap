@@ -1,6 +1,0 @@
-framework module Pods_MFAPP {
-  umbrella header "Pods-MFAPP-umbrella.h"
-
-  export *
-  module * { export * }
-}

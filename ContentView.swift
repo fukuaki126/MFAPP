@@ -1,13 +1,24 @@
 import SwiftUI
 import GoogleMobileAds
 
+class AppDelegate: UIResponder, UIApplicationDelegate {
+
+  func application(_ application: UIApplication,
+      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+
+    MobileAds.shared.start(completionHandler: nil)
+
+    return true
+  }
+}
+
 struct ContentView: View {
     @State private var tasks: [Task] = []
     @State private var showingAddTaskView = false
     @State private var selectedTab = 0 // 選択されたタブを管理
-    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     // 広告ユニットID
-    let adUnitID = "your-admob-ad-unit-id" // ここに実際のAdMobの広告ユニットIDを入れてください
+    let adUnitID = "ca-app-pub-3940256099942544/2435281174" // ここに実際のAdMobの広告ユニットIDを入れてください
 
     init() {
         UITabBar.appearance().backgroundColor = UIColor.systemGray2
