@@ -1,41 +1,42 @@
 import SwiftUI
 
 struct EditTaskView: View {
-    @Binding var task: Task // 変更: 配列ではなく単一のタスクをバインド
+    @Binding var task: Task
     @Environment(\.dismiss) var dismiss
-
-    @State private var title: String
-    @State private var dueDate: Date
-    @State private var isCompleted: Bool
-
-    init(task: Binding<Task>) {
-        self._task = task
-        _title = State(initialValue: task.wrappedValue.title)
-        _dueDate = State(initialValue: task.wrappedValue.dueDate ?? Date())
-        _isCompleted = State(initialValue: task.wrappedValue.isCompleted)
-    }
+    @Environment(\.presentationMode) var presentationMode // 画面を閉じるために必要
 
     var body: some View {
-        Form {
-            Section(header: Text("タスク詳細")) {
-                TextField("タスク名", text: $title)
-                DatePicker("通知時間", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
-                Toggle("完了", isOn: $isCompleted)
+        NavigationView {
+            Form {
+                Section(header: Text("タスク詳細")) {
+                    TextField("タスク名", text: $task.title)
+                    DatePicker("通知時間", selection: Binding(
+                        get: { task.dueDate ?? Date() },
+                        set: { task.dueDate = $0 }
+                    ), displayedComponents: [.date, .hourAndMinute])
+                    Toggle("完了", isOn: $task.isCompleted)
+                }
             }
+            .navigationTitle("タスクを編集")
+            .navigationBarItems(
+                leading: Button("戻る") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("保存") {
+                    saveTasks()
+                    dismiss()
+                }
+            )
         }
-        .navigationTitle("タスクを編集")
-        .navigationBarItems(
-            trailing: Button("保存") {
-                task.title = title
-                task.dueDate = dueDate
-                task.isCompleted = isCompleted
-                saveTasks()
-                dismiss()
-            }
-        )
     }
 
     private func saveTasks() {
-        UserDefaults.standard.set(try? JSONEncoder().encode([task]), forKey: "tasks")
+        // `task` は `tasks` の中の1つをバインドしているため、tasks 全体を取得する
+        if let tasksData = UserDefaults.standard.data(forKey: "tasks"),
+           var tasks = try? JSONDecoder().decode([Task].self, from: tasksData),
+           let index = tasks.firstIndex(where: { $0.id == task.id }) {
+            tasks[index] = task
+            UserDefaults.standard.set(try? JSONEncoder().encode(tasks), forKey: "tasks")
+        }
     }
 }

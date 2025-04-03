@@ -12,13 +12,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 }
 
+class TaskManager: ObservableObject {
+    @Published var tasks: [Task] = []
+    @Published var selectedTaskIndex: Int = 0
+}
+
 struct ContentView: View {
-    @State private var tasks: [Task] = []
+    //@State private var tasks: [Task] = []
     @State private var showingAddTaskView = false
-    @State private var selectedTab = 0 // 選択されたタブを管理
+    @State private var selectedTab = 1 // ✅ 初期タブを「カレンダー」に設定
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    // 広告ユニットID
-    let adUnitID = "ca-app-pub-3940256099942544/2435281174" // ここに実際のAdMobの広告ユニットIDを入れてください
+    //@State private var selectedTaskIndex = 0
+    @StateObject private var taskManager = TaskManager()
+    let adUnitID = "ca-app-pub-3940256099942544/2435281174"
 
     init() {
         UITabBar.appearance().backgroundColor = UIColor.systemGray2
@@ -26,37 +32,62 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            VStack {
-                // バナー広告を追加
-                BannerAdView(adUnitID: adUnitID)
-                    .frame(height: 50) // バナー広告の高さ
+            VStack(spacing: 0) {
+                // バナー広告
+                HStack {
+                    BannerAdView(adUnitID: adUnitID)
+                        .frame(height: 50)
+                        .frame(maxWidth: .infinity)
+                }
+                
+                // ヘッダー（メニューボタン & プラスボタン）
+                HStack {
+                    Button(action: {}) {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .padding()
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { showingAddTaskView = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title)
+                            .imageScale(.large)
+                            .foregroundColor(.blue)
+                            .padding(.trailing)
+                    }
+                }
+                .frame(height: 50)
 
-                TabView(selection: $selectedTab) { // タブの選択状態を監視
-                    HabitTaskView(tasks: $tasks)
+                // ✅ 初期表示がカレンダーになる
+                TabView(selection: $selectedTab) {
+                    HabitTaskView(tasks: $taskManager.tasks, selectedTaskIndex: $taskManager.selectedTaskIndex)
                         .tabItem {
                             Image(systemName: "repeat")
                             Text("習慣タスク")
                         }
                         .tag(0)
 
-                    ReminderTaskView(tasks: $tasks)
+                    CalendarView() // ✅ 初期表示されるビュー
+                        .tabItem {
+                            Image(systemName: "calendar")
+                            Text("カレンダー")
+                        }
+                        .tag(1)
+
+                    ReminderTaskView(tasks: $taskManager.tasks, selectedTaskIndex: $taskManager.selectedTaskIndex)
                         .tabItem {
                             Image(systemName: "bell.fill")
                             Text("リマインダー")
                         }
-                        .tag(1)
+                        .tag(2)
                 }
-                .accentColor(selectedTab == 0 ? .red : .blue) // タブの選択状態に応じて色変更
+                .accentColor(selectedTab == 1 ? .red : .blue) // カレンダーに合わせた色変更
             }
-            .navigationBarItems(trailing: Button(action: {
-                showingAddTaskView = true
-            }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title)
-                    .foregroundColor(.blue)
-            })
             .sheet(isPresented: $showingAddTaskView) {
-                AddTaskView(tasks: $tasks)
+                AddTaskView(tasks: $taskManager.tasks)
             }
             .onAppear {
                 NotificationManager.shared.requestAuthorization()
@@ -68,10 +99,11 @@ struct ContentView: View {
     private func loadTasks() {
         if let savedData = UserDefaults.standard.data(forKey: "tasks"),
            let decodedTasks = try? JSONDecoder().decode([Task].self, from: savedData) {
-            tasks = decodedTasks
+            taskManager.tasks = decodedTasks
         }
     }
 }
+
 
 struct BannerAdView: View {
     var adUnitID: String

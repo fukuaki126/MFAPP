@@ -1,86 +1,88 @@
 import SwiftUI
 
 struct EditHabitTaskView: View {
-    @Binding var tasks: [Task]
+    @Binding var task: Task
+    @Environment(\.dismiss) var dismiss
     @Environment(\.presentationMode) var presentationMode
-    
-    // Task to be edited
-    var taskToEdit: Task
-    
-    // State variables to hold task details
-    @State private var title: String
+
+    // 一時的な @State 変数を使用
     @State private var lastCompletedDate: Date
-    @State private var alertDays: String
-    @State private var notificationTime: Date
-    
-    // Initialize with the task to be edited
-    init(tasks: Binding<[Task]>, taskToEdit: Task) {
-        self._tasks = tasks
-        self.taskToEdit = taskToEdit
-        
-        // Initialize state variables with task's current values
-        _title = State(initialValue: taskToEdit.title)
-        _lastCompletedDate = State(initialValue: taskToEdit.lastCompletedDate ?? Date())
-        _alertDays = State(initialValue: String(taskToEdit.alertDays ?? 0))
-        _notificationTime = State(initialValue: taskToEdit.notificationTime ?? Date())
+    @State private var dueDate: Date
+    @State private var alertDays: Int
+
+    init(task: Binding<Task>) {
+        self._task = task
+        // task の値を初期化する
+        _lastCompletedDate = State(initialValue: task.wrappedValue.lastCompletedDate ?? Date())
+        _dueDate = State(initialValue: task.wrappedValue.dueDate ?? Date())
+        _alertDays = State(initialValue: task.wrappedValue.alertDays ?? 0) // ✅ nilを防ぐ
     }
-    
+
     var body: some View {
-        Form {
-            Section(header: Text("タスク詳細")) {
-                TextField("タスク名", text: $title)
-                
-                DatePicker("最終実行日",
-                           selection: $lastCompletedDate,
-                           displayedComponents: [.date])
-                
-                HStack {
-                    Text("警告日数")
-                    Spacer()
-                    TextField("0", text: $alertDays)
+        NavigationView {
+            Form {
+                Section(header: Text("タスク詳細")) {
+                    TextField("タスク名", text: $task.title)
+                    
+                    // 最終実行日
+                    DatePicker("最終実行日", selection: $lastCompletedDate, displayedComponents: [.date])
+                    
+                    // 警告日数
+                    HStack {
+                        Text("警告日数")
+                        Spacer()
+                        TextField("0", text: Binding(
+                            get: { String(alertDays) }, // ✅ Int を String に変換
+                            set: { newValue in
+                                if let intValue = Int(newValue) { // ✅ 数値変換が成功した場合のみ更新
+                                    alertDays = intValue
+                                }
+                            }
+                        ))
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 50)
-                        .onChange(of: alertDays) { newValue in
-                            // 数値以外を削除し、3桁に制限
-                            alertDays = String(newValue.prefix(3)).filter { "0123456789".contains($0) }
-                        }
-                    Text("日")
+                        Text("日")
+                    }
+                    
+                    // 通知時間
+                    DatePicker("通知時間", selection: $dueDate, displayedComponents: [.hourAndMinute])
                 }
-                
-                DatePicker("通知時間",
-                           selection: $notificationTime,
-                           displayedComponents: [.hourAndMinute])
             }
+            .navigationTitle("タスクを編集")
+            .navigationBarItems(
+                leading: Button("戻る") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("保存") {
+                    saveTaskChanges()
+                    dismiss()
+                }
+            )
         }
-        .navigationTitle("タスクを編集")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("保存") {
-                    saveTask()
-                }
-                .font(.body) // ✅ 高さを戻るボタンと統一
-            }
+        .onAppear {
+            // onAppearで初期化
+            lastCompletedDate = task.lastCompletedDate ?? Date()
+            dueDate = task.dueDate ?? Date()
+            alertDays = task.alertDays ?? 0 // ✅ UserDefaults のデータが null の場合も防ぐ
         }
     }
     
-    private func saveTask() {
-        if let index = tasks.firstIndex(where: { $0.id == taskToEdit.id }) {
-            tasks[index].title = title
-            tasks[index].lastCompletedDate = lastCompletedDate
-            tasks[index].alertDays = Int(alertDays) ?? 0
-            tasks[index].notificationTime = notificationTime
-            
-            // Save tasks and reschedule notifications
-            saveTasks()
-            NotificationManager.shared.scheduleHabitTaskNotification(task: tasks[index])
-            
-            // Dismiss the view
-            presentationMode.wrappedValue.dismiss()
-        }
+    private func saveTaskChanges() {
+        // ✅ `alertDays` の値を `task.alertDays` に保存
+        task.lastCompletedDate = lastCompletedDate
+        task.dueDate = dueDate
+        task.alertDays = alertDays // ✅ ここを追加
+        saveTasks()
     }
 
     private func saveTasks() {
-        UserDefaults.standard.set(try? JSONEncoder().encode(tasks), forKey: "tasks")
+        // UserDefaults への保存
+        if let tasksData = UserDefaults.standard.data(forKey: "tasks"),
+           var tasks = try? JSONDecoder().decode([Task].self, from: tasksData),
+           let index = tasks.firstIndex(where: { $0.id == task.id }) {
+            tasks[index] = task
+            UserDefaults.standard.set(try? JSONEncoder().encode(tasks), forKey: "tasks")
+        }
     }
 }

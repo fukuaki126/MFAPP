@@ -2,10 +2,11 @@ import SwiftUI
 
 struct ReminderTaskView: View {
     @Binding var tasks: [Task]
+    @Binding var selectedTaskIndex: Int
+    @State private var isEditPresented = false      // ✅ 画面表示の状態管理
 
     var body: some View {
         ZStack {
-            // 背景色を統一（リストが空でも適用）
             Color(UIColor.systemGroupedBackground)
                 .edgesIgnoringSafeArea(.all)
 
@@ -20,7 +21,6 @@ struct ReminderTaskView: View {
                         ForEach(tasks.indices, id: \.self) { index in
                             if tasks[index].taskType == .reminder {
                                 HStack {
-                                    // ✅ チェックマークボタン（タップしても遷移しない）
                                     Button(action: {
                                         tasks[index].isCompleted.toggle()
                                     }) {
@@ -28,35 +28,44 @@ struct ReminderTaskView: View {
                                             .foregroundColor(tasks[index].isCompleted ? .green : .gray)
                                             .font(.system(size: 30))
                                     }
-                                    .buttonStyle(PlainButtonStyle()) // ✅ タップ時の遷移を防ぐ
+                                    .buttonStyle(PlainButtonStyle())
 
-                                    // ✅ NavigationLink（タイトルや日付をタップで編集画面へ）
-                                    NavigationLink(destination: EditTaskView(task: $tasks[index])) {
+                                    HStack {
                                         VStack(alignment: .leading) {
                                             Text(tasks[index].title)
                                                 .font(.headline)
                                                 .foregroundColor(.primary)
-                                            
+
                                             if let dueDate = tasks[index].dueDate {
                                                 Text(formatDate(dueDate))
                                                     .font(.subheadline)
                                                     .foregroundColor(.gray)
                                             }
                                         }
+                                        Spacer()
+                                    }
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedTaskIndex = index  // ✅ タスクのインデックスを保存
+                                        isEditPresented = true
                                     }
                                 }
                             }
                         }
+                        
                         .onDelete { indexSet in
                             tasks.remove(atOffsets: indexSet)
                             saveTasks()
                         }
                     }
-                    .listStyle(PlainListStyle()) // ✅ List の背景を透明化
+                    .listStyle(PlainListStyle())
                     .background(Color.clear)
                 }
             }
         }
+        .fullScreenCover(isPresented: $isEditPresented,content:{
+            EditTaskView(task: $tasks[selectedTaskIndex]) // ✅ 直接 tasks[index] を渡す
+        })
     }
 
     private func formatDate(_ date: Date) -> String {
