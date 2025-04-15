@@ -9,7 +9,12 @@ struct AddTaskView: View {
     @State private var dueDate: Date = Date()
     @State private var lastCompletedDate: Date = Date() // 最終実行日
     @State private var alertDays: String = "" // 警告日数 (String)
-    @State private var notificationTime: Date = Date() // 🔔 通知時間を追加
+    @State private var notificationTime: Date = Date() // 🔔 通知時間
+    @State private var snoozeText: String = ""
+    @State private var selectedSnoozeMinutes: Int = 5 // デフォルト5分
+
+    // 5〜60分までの5分刻みの配列
+    let snoozeOptions = Array(stride(from: 5, through: 60, by: 5))
     
     var body: some View {
         NavigationView {
@@ -30,43 +35,61 @@ struct AddTaskView: View {
                         Spacer()
                         TextField("0", text: $alertDays)
                             .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing) // 右寄せ
-                            .frame(width: 50) // コンパクトにする
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
                             .onChange(of: alertDays) { oldValue, newValue in
                                 alertDays = String(newValue.prefix(3)).filter { "0123456789".contains($0) }
                             }
-
-                        Text("日") // 単位を固定で表示
+                        Text("日")
                     }
+
                     // 🔔 通知時間を選択
                     DatePicker("通知時間", selection: $notificationTime, displayedComponents: [.hourAndMinute])
                 }
 
-
                 if taskType == .reminder {
                     DatePicker("通知時間", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                    
+                    Picker("スヌーズ", selection: $selectedSnoozeMinutes) {
+                        ForEach(snoozeOptions, id: \.self) { minutes in
+                            Text("\(minutes) 分").tag(minutes)
+                        }
+                    }
                 }
             }
             .navigationTitle("タスクを追加")
-            .navigationBarItems(leading: Button("キャンセル") {
-                presentationMode.wrappedValue.dismiss()
-            }, trailing: Button("保存") {
-                // alertDays を Int 型に変換する
-                let alertDaysInt = Int(alertDays) ?? 0 // 無効な場合は0にデフォルト設定
-                
-                let newTask = Task(
-                    title: title,
-                    taskType: taskType,
-                    lastCompletedDate: taskType == .habit ? lastCompletedDate : nil,
-                    dueDate: taskType == .reminder ? dueDate : nil,                    
-                    alertDays: taskType == .habit ? alertDaysInt : nil,
-                    notificationTime: taskType == .habit ? notificationTime : nil, // 🔔 修正済みの通知時間を保存
-                    isCompleted: false
-                )
-                tasks.append(newTask)
-                saveTasks()
-                presentationMode.wrappedValue.dismiss()
-            })
+            .navigationBarItems(
+                leading: Button("キャンセル") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("保存") {
+                    let alertDaysInt = Int(alertDays) ?? 0
+
+                    let newTask = Task(
+                        title: title,
+                        taskType: taskType,
+                        lastCompletedDate: taskType == .habit ? lastCompletedDate : nil,
+                        dueDate: taskType == .reminder ? dueDate : nil,
+                        alertDays: taskType == .habit ? alertDaysInt : nil,
+                        notificationTime: taskType == .habit ? notificationTime : nil,
+                        snoozeMinutes: taskType == .reminder ? selectedSnoozeMinutes : nil,
+                        isCompleted: false
+                    )
+
+                    tasks.append(newTask)
+                    saveTasks()
+
+                    // ✅ タスク作成後に通知をスケジュール
+                    if newTask.taskType == .habit {
+                        NotificationManager.shared.scheduleHabitTaskNotification(task: newTask)
+                    }
+                    if newTask.taskType == .reminder {
+                        NotificationManager.shared.scheduleReminderTaskNotification(task: newTask)
+                    }
+
+                    presentationMode.wrappedValue.dismiss()
+                }
+            )
         }
     }
 

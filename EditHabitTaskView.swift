@@ -7,15 +7,15 @@ struct EditHabitTaskView: View {
 
     // 一時的な @State 変数を使用
     @State private var lastCompletedDate: Date
-    @State private var dueDate: Date
+    @State private var notificationTime: Date
     @State private var alertDays: Int
 
     init(task: Binding<Task>) {
         self._task = task
         // task の値を初期化する
         _lastCompletedDate = State(initialValue: task.wrappedValue.lastCompletedDate ?? Date())
-        _dueDate = State(initialValue: task.wrappedValue.dueDate ?? Date())
-        _alertDays = State(initialValue: task.wrappedValue.alertDays ?? 0) // ✅ nilを防ぐ
+        _notificationTime = State(initialValue: task.wrappedValue.notificationTime ?? Date())
+        _alertDays = State(initialValue: task.wrappedValue.alertDays ?? 0)
     }
 
     var body: some View {
@@ -32,9 +32,10 @@ struct EditHabitTaskView: View {
                         Text("警告日数")
                         Spacer()
                         TextField("0", text: Binding(
-                            get: { String(alertDays) }, // ✅ Int を String に変換
+                            get: { String(alertDays) },
                             set: { newValue in
-                                if let intValue = Int(newValue) { // ✅ 数値変換が成功した場合のみ更新
+                                //  数値変換が成功した場合のみ更新
+                                if let intValue = Int(newValue) {
                                     alertDays = intValue
                                 }
                             }
@@ -46,7 +47,7 @@ struct EditHabitTaskView: View {
                     }
                     
                     // 通知時間
-                    DatePicker("通知時間", selection: $dueDate, displayedComponents: [.hourAndMinute])
+                    DatePicker("通知時間", selection: $notificationTime, displayedComponents: [.hourAndMinute])
                 }
             }
             .navigationTitle("タスクを編集")
@@ -63,7 +64,7 @@ struct EditHabitTaskView: View {
         .onAppear {
             // onAppearで初期化
             lastCompletedDate = task.lastCompletedDate ?? Date()
-            dueDate = task.dueDate ?? Date()
+            notificationTime = task.notificationTime ?? Date()
             alertDays = task.alertDays ?? 0 // ✅ UserDefaults のデータが null の場合も防ぐ
         }
     }
@@ -71,8 +72,11 @@ struct EditHabitTaskView: View {
     private func saveTaskChanges() {
         // ✅ `alertDays` の値を `task.alertDays` に保存
         task.lastCompletedDate = lastCompletedDate
-        task.dueDate = dueDate
-        task.alertDays = alertDays // ✅ ここを追加
+        task.notificationTime = notificationTime
+        task.alertDays = alertDays
+        
+        NotificationManager.shared.cancelNotification(task: task)
+        NotificationManager.shared.scheduleHabitTaskNotification(task: task)
         saveTasks()
     }
 

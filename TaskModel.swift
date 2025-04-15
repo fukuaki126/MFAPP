@@ -12,6 +12,7 @@ struct Task: Identifiable, Codable {
     var lastCompletedDate: Date?
     var dueDate: Date?
     var alertDays: Int?
-    var notificationTime: Date? // 🔔 通知時間を追加
+    var notificationTime: Date?
+    var snoozeMinutes: Int?
     var isCompleted: Bool
 }

@@ -3,7 +3,7 @@ import SwiftUI
 struct ReminderTaskView: View {
     @Binding var tasks: [Task]
     @Binding var selectedTaskIndex: Int
-    @State private var isEditPresented = false      // ✅ 画面表示の状態管理
+    @State private var isEditPresented = false
 
     var body: some View {
         ZStack {
@@ -46,7 +46,7 @@ struct ReminderTaskView: View {
                                     }
                                     .contentShape(Rectangle())
                                     .onTapGesture {
-                                        selectedTaskIndex = index  // ✅ タスクのインデックスを保存
+                                        selectedTaskIndex = index
                                         isEditPresented = true
                                     }
                                 }
@@ -64,7 +64,7 @@ struct ReminderTaskView: View {
             }
         }
         .fullScreenCover(isPresented: $isEditPresented,content:{
-            EditTaskView(task: $tasks[selectedTaskIndex]) // ✅ 直接 tasks[index] を渡す
+            EditTaskView(task: $tasks[selectedTaskIndex])
         })
     }
 
